@@ -24,7 +24,7 @@ const isBase64 = (str) => {
 const IGNORE_PATHS = ['/catalog', '/list', '/configure', '/manifest', '/poster'];
 
 const decodeBase64Middleware = (req, res, next) => {
-    if (req.path.startsWith('/callback') || req.path.startsWith('/lists')) {
+    if (req.path.startsWith('/callback') || req.path.startsWith('/lists') || req.path.startsWith('/auth/')) {
         return next();
     }
 

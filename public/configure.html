@@ -585,14 +585,10 @@
             });
           });
         }
-        fetch('/env').then(response => response.json()).then(env => {
-          document.getElementById('connectTraktButton').addEventListener('click', () => {
-            const clientId = env.TRAKT_CLIENT_ID;
-            const redirectUri = `${window.location.origin}/callback`;
-            const traktAuthUrl = `https://trakt.tv/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-            window.location.href = traktAuthUrl;
-          });
-        }).catch(error => console.error('Error fetching environment variables:', error));
+        // The server generates the PKCE verifier/challenge and redirects to Trakt.
+        document.getElementById('connectTraktButton').addEventListener('click', () => {
+          window.location.href = '/auth/trakt';
+        });
         const tabs = document.querySelectorAll('.tab');
         const listContainers = document.querySelectorAll('.list-container');
         const selectedContainer = document.getElementById('selectedContainer');

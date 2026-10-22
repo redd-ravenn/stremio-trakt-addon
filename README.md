@@ -82,7 +82,7 @@ services:
       # 3. Create a new application by filling in the required information (name, description, etc.).
       #    - For the "Redirect URL", use the following format: BASE_URL + /callback (e.g., http://localhost:7000/callback).
       TRAKT_CLIENT_ID:                 # Trakt client ID
-      TRAKT_CLIENT_SECRET:             # Trakt client secret
+      TRAKT_CLIENT_SECRET:             # Optional, deprecated by Trakt (sign-in uses PKCE). Leave empty.
 
       # Content cache duration
       TMDB_CACHE_DURATION: 1d          # Cache duration for TMDB data (e.g., '1d' for 1 day)

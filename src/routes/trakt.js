@@ -1,6 +1,7 @@
 const express = require('express');
 const { saveUserTokens, fetchUserWatchedMovies, fetchUserWatchedShows, fetchUserTokens } = require('../helpers/trakt');
-const { fetchUserProfile, exchangeCodeForToken, markContentAsWatched, saveUserWatchedHistory, lookupTraktId, fetchTrendingLists, fetchPopularLists, searchLists, fetchListById } = require('../api/trakt');
+const { fetchUserProfile, exchangeCodeForToken, markContentAsWatched, saveUserWatchedHistory, lookupTraktId, fetchTrendingLists, fetchPopularLists, searchLists, fetchListById, TRAKT_AUTHORIZE_URL, TRAKT_REDIRECT_URI } = require('../api/trakt');
+const { generateCodeVerifier, generateCodeChallenge, generateState, storeVerifier, consumeVerifier } = require('../helpers/pkce');
 const log = require('../helpers/logger');
 const router = express.Router();
 
@@ -10,16 +11,52 @@ if (!TRAKT_CLIENT_ID) {
   log.warn('Environment variables TRAKT_CLIENT_ID is not set.');
 }
 
+// Starts the Trakt sign-in using OAuth with PKCE (S256).
+router.get('/auth/trakt', async (req, res) => {
+  if (!TRAKT_CLIENT_ID) {
+    log.error('Cannot start Trakt sign-in: TRAKT_CLIENT_ID is not set.');
+    return res.status(500).send('Error: TRAKT_CLIENT_ID is not configured.');
+  }
+
+  try {
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+    const state = generateState();
+
+    await storeVerifier(state, codeVerifier);
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: TRAKT_CLIENT_ID,
+      redirect_uri: TRAKT_REDIRECT_URI,
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    });
+
+    res.redirect(`${TRAKT_AUTHORIZE_URL}?${params.toString()}`);
+  } catch (error) {
+    log.error(`Error starting Trakt sign-in: ${error.message}`);
+    res.status(500).send('Error starting Trakt sign-in');
+  }
+});
+
 router.get('/callback', async (req, res) => {
-  const code = req.query.code;
+  const { code, state } = req.query;
 
   if (!code) {
     log.error('Authorization code is missing.');
     return res.status(400).send('Error: Authorization code is missing.');
   }
 
+  const codeVerifier = await consumeVerifier(state);
+  if (!codeVerifier) {
+    log.error('Invalid or expired state: no matching PKCE verifier found.');
+    return res.status(400).send('Error: Invalid or expired sign-in session. Please go back and try connecting to Trakt again.');
+  }
+
   try {
-    const { access_token, refresh_token } = await exchangeCodeForToken(code);
+    const { access_token, refresh_token } = await exchangeCodeForToken(code, codeVerifier);
 
     if (!access_token || !refresh_token) {
       log.error('Received tokens are invalid or missing.');

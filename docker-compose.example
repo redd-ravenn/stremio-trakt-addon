@@ -30,7 +30,7 @@ services:
 
       # Trakt API credentials
       TRAKT_CLIENT_ID:                 # Trakt client ID
-      TRAKT_CLIENT_SECRET:             # Trakt client secret
+      TRAKT_CLIENT_SECRET:             # Optional, deprecated by Trakt (sign-in uses PKCE). Leave empty.
 
       # Content cache duration
       TMDB_CACHE_DURATION: 1d          # Cache duration for TMDB data (e.g., '1d' for 1 day)

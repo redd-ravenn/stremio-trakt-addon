@@ -8,8 +8,9 @@ const { parseCacheDuration } = require('../helpers/cache');
 const TRAKT_BASE_URL = 'https://api.trakt.tv';
 const TRAKT_API_VERSION = '2';
 const TRAKT_API_KEY = process.env.TRAKT_CLIENT_ID;
-const TRAKT_CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET;
+const TRAKT_CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET; // optional, deprecated by Trakt (PKCE is used for sign-in)
 const TRAKT_REDIRECT_URI = `${process.env.BASE_URL}/callback`;
+const TRAKT_AUTHORIZE_URL = 'https://auth.trakt.tv/oauth/authorize';
 
 const makeGetRequest = (url, accessToken = null) => {
     const headers = {
@@ -92,12 +93,17 @@ const makePostRequest = (url, data, accessToken = null) => {
     });
 };
 
-const exchangeCodeForToken = async (code) => {
+const exchangeCodeForToken = async (code, codeVerifier) => {
+    if (!codeVerifier) {
+        throw new Error('Missing PKCE code_verifier for token exchange.');
+    }
+
     try {
+        // PKCE: the code_verifier replaces the client secret.
         const response = await makePostRequest(`${TRAKT_BASE_URL}/oauth/token`, {
             code: code,
             client_id: TRAKT_API_KEY,
-            client_secret: TRAKT_CLIENT_SECRET,
+            code_verifier: codeVerifier,
             redirect_uri: TRAKT_REDIRECT_URI,
             grant_type: 'authorization_code',
         });
@@ -126,10 +132,14 @@ const refreshTraktToken = async (refreshToken) => {
     const payload = {
         refresh_token: refreshToken,
         client_id: TRAKT_API_KEY,
-        client_secret: TRAKT_CLIENT_SECRET,
         redirect_uri: TRAKT_REDIRECT_URI,
         grant_type: 'refresh_token'
     };
+
+    // The client secret is deprecated and optional. Only send it if one is still configured.
+    if (TRAKT_CLIENT_SECRET) {
+        payload.client_secret = TRAKT_CLIENT_SECRET;
+    }
 
     try {
         const data = await makePostRequest('https://api.trakt.tv/oauth/token', payload);
@@ -591,4 +601,4 @@ const fetchAndStoreGenres = async () => {
     }
 };
 
-module.exports = { makeGetRequest, makePostRequest, fetchUserHistory, fetchUserProfile, exchangeCodeForToken, handleTraktHistory, markContentAsWatched, lookupTraktId, saveUserWatchedHistory, fetchTrendingLists, fetchPopularLists, searchLists, fetchListById, fetchListItems, fetchTrendingItems, fetchPopularItems, fetchWatchlistItems, fetchRecommendations, fetchAndStoreGenres };
+module.exports = { TRAKT_AUTHORIZE_URL, TRAKT_REDIRECT_URI, makeGetRequest, makePostRequest, fetchUserHistory, fetchUserProfile, exchangeCodeForToken, handleTraktHistory, markContentAsWatched, lookupTraktId, saveUserWatchedHistory, fetchTrendingLists, fetchPopularLists, searchLists, fetchListById, fetchListItems, fetchTrendingItems, fetchPopularItems, fetchWatchlistItems, fetchRecommendations, fetchAndStoreGenres };

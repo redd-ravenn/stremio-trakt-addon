@@ -21,7 +21,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: 
       TRAKT_CLIENT_ID: your_trakt_client_id
-      TRAKT_CLIENT_SECRET: your_trakt_client_secret
+      TRAKT_CLIENT_SECRET:  # optional, deprecated by Trakt (sign-in uses PKCE)
       TMDB_CACHE_DURATION: 1d
       TRAKT_CACHE_DURATION: 1d
       TRAKT_HISTORY_FETCH_INTERVAL: 1d
